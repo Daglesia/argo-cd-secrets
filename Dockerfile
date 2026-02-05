@@ -1,22 +1,20 @@
-FROM quay.io/argoproj/argocd:latest
+ARG ARGOCD_VERSION=v3.3.0
+FROM quay.io/argoproj/argocd:$ARGOCD_VERSION
 
 USER root
 
-RUN apt-get update && \
-    apt-get install -y curl && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+ENV SOPS_VERSION=3.8.1
+ENV HELM_SECRETS_VERSION=4.6.0
 
-ARG SOPS_VERSION=v3.9.0
-RUN curl -L https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64 -o /usr/local/bin/sops && \
+RUN curl -L https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.linux.amd64 -o /usr/local/bin/sops && \
     chmod +x /usr/local/bin/sops
 
-ARG AGE_VERSION=v1.1.0
-RUN curl -L https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/age-${AGE_VERSION}-linux-amd64.tar.gz | tar xz && \
-    mv age/age /usr/local/bin/age && \
-    mv age/age-keygen /usr/local/bin/age-keygen && \
-    rm -rf age
+USER argocd
+RUN helm plugin install https://github.com/jkroepke/helm-secrets --version ${HELM_SECRETS_VERSION}
 
-RUN mkdir -p /home/argocd/cmp-server/config
+USER root
+RUN echo '#!/bin/bash' > /usr/local/bin/helm-wrapper && \
+    echo 'exec helm secrets "$@"' >> /usr/local/bin/helm-wrapper && \
+    chmod +x /usr/local/bin/helm-wrapper
 
 USER argocd
