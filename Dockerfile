@@ -3,6 +3,11 @@ FROM quay.io/argoproj/argocd:$ARGOCD_VERSION
 
 USER root
 
+RUN apt-get update && \
+    apt-get install -y curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 ENV SOPS_VERSION=3.8.1
 ENV HELM_SECRETS_VERSION=4.6.0
 
